@@ -1,14 +1,13 @@
 import datetime
-import json
 from typing import Iterable
 
 import requests
 from dateutil import tz
 
-from models import HOUR, Record
+from models import Record
 
 # Tested with RTL on 2 Oct 2020
-DMHUB_API_LIMIT = 10 #50
+DMHUB_API_LIMIT = 50
 BERLIN_TIME = tz.gettz('Europe/Berlin')
 
 class DmHub:
@@ -54,9 +53,9 @@ def main():
     for x in dm.fetch():
         print(x)
 
-    #dm = DmHub('www.jam.fm', 'live', 'jamfm')
-    #for x in dm.fetch():
-    #    print(x)
+    dm = DmHub('www.jam.fm', 'jam', 'jamfm')
+    for x in dm.fetch():
+        print(x)
 
     dm = DmHub('spreeradio.de', 'spree', 'spreeradio')
     for x in dm.fetch():
