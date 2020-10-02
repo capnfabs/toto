@@ -2,13 +2,12 @@ import datetime
 from typing import Iterable
 
 import requests
-from dateutil import tz
 
-from models import Record
+from models import BERLIN_TIME, Record
 
 # Tested with RTL on 2 Oct 2020
 DMHUB_API_LIMIT = 50
-BERLIN_TIME = tz.gettz('Europe/Berlin')
+
 
 class DmHub:
     def __init__(self, host: str, station: str, broadcaster: str) -> None:

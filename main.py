@@ -1,5 +1,6 @@
 from dmhub import DmHub
 from iris import IrisScraper
+from star_fm import StarFm
 
 
 def main():
@@ -26,6 +27,8 @@ def main():
     dm = DmHub('spreeradio.de', 'spree', 'spreeradio')
     for x in dm.fetch():
         print(x)
+
+    lol = [print(x) for x in StarFm().fetch()]
 
 if __name__ == '__main__':
     main()
