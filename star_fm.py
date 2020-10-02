@@ -20,6 +20,10 @@ class StarFm:
         body = json.loads(r.text[1:-2])
         # It's a dict with "0", "1" etc for keys (strings containing numbers) => objects
         for _index, record in body['all'].items():
+            # TODO: this clause hasn't been tested.
+            if not (record.get('cDate') and record.get('artist') and record.get('song')):
+                print(f'Skipped bad record: {record}')
+                continue
             # TODO: check that this handles wrapping correctly
             time = strptime(record['cDate'], '%H:%M:%S')
             now = datetime.now(tz=BERLIN_TIME)
