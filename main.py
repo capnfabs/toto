@@ -1,5 +1,6 @@
 from dmhub import DmHub
 from iris import IrisScraper
+from rbb import Rbb
 from star_fm import StarFm
 
 
@@ -29,6 +30,10 @@ def main():
         print(x)
 
     lol = [print(x) for x in StarFm().fetch()]
+
+    rbb = Rbb('http://playlisten.rbb-online.de/radioberlin/main/', 'rbb')
+    for x in rbb.fetch():
+        print(x)
 
 if __name__ == '__main__':
     main()
