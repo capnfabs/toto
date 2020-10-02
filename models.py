@@ -9,3 +9,6 @@ class Record(NamedTuple):
     title: str
     artist: str
     broadcaster: str
+
+    def __str__(self):
+        return f'{self.timestamp.isoformat()} - {self.title} - {self.artist} ({self.broadcaster})'

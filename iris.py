@@ -36,7 +36,7 @@ class IrisScraper:
             [artist] = song['artist']['entry']
             artist_name = artist['name']
             yield Record(
-                timestamp= timestamp,
+                timestamp=datetime.datetime.fromisoformat(timestamp),
                 title=song_title,
                 artist=artist_name,
                 broadcaster=self.broadcaster)
