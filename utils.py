@@ -4,6 +4,7 @@ import datetime
 from dateutil import tz
 
 HOUR = datetime.timedelta(hours=1)
+MINUTE = datetime.timedelta(minutes=1)
 DAY = datetime.timedelta(days=1)
 BERLIN_TIME = tz.gettz('Europe/Berlin')
 
