@@ -1,7 +1,7 @@
 import json
 import time
 from datetime import datetime
-from typing import Dict, Iterable, Union
+from typing import Iterable
 
 import requests
 from bs4 import BeautifulSoup

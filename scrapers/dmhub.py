@@ -18,15 +18,11 @@ class DmHub:
         self.broadcaster = broadcaster
 
     def fetch(self) -> Iterable[Record]:
-        # Here's a timezone aware UTC
-        end = datetime.datetime.now(datetime.timezone.utc)
-        assert end.date() == datetime.date.today()
-
-        end_berlin_time = end.astimezone(tz=BERLIN_TIME)
+        end_berlin_time = datetime.datetime.now(tz=BERLIN_TIME)
         hour = end_berlin_time.hour
         minute = end_berlin_time.minute
         print(f'Requesting time at {hour}:{minute} (berlin time)')
-        # TODO: do I need to change the word air here?
+        # Word 'air' is a constant, not program related
         url = f'https://{self.host}/services/program-info/history/{self.station}/air/0/{hour}/{minute}'
 
         params = {
@@ -38,7 +34,6 @@ class DmHub:
         print(f'Found {len(body)} records')
         for record in body:
             # Millis to seconds
-            # TODO: this will break on the 25th of October at 3am
             timestamp = datetime.datetime.fromtimestamp(record['start'] / 1000, tz=BERLIN_TIME)
             song_title = record['track']['title']
             artist_name = record['track']['artist']
