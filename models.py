@@ -1,6 +1,8 @@
 import datetime
 from typing import NamedTuple
 
+from pony.orm import Database, Required, composite_key
+
 
 class Record(NamedTuple):
     timestamp: datetime.datetime
@@ -9,3 +11,20 @@ class Record(NamedTuple):
 
     def __str__(self) -> str:
         return f'{self.timestamp.isoformat()}: {self.title} - {self.artist}'
+
+
+db = Database()
+
+
+class SongPlay(db.Entity):
+    timestamp = Required(datetime.datetime)
+    station = Required(str)
+    title = Required(str)
+    artist = Required(str)
+    # Prevent dupes
+    composite_key(station, timestamp, title, artist)
+
+
+def connect_db():
+    db.bind(provider='sqlite', filename='database.sqlite', create_db=True)
+    db.generate_mapping(create_tables=True)

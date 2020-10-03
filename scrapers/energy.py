@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 
 from models import Record
 from scrapers import THIRTY_MINS
-from utils import BERLIN_TIME, datetime_from_berlin_hhmmss
+from utils import BERLIN_TIME, HOUR, datetime_from_berlin_hhmmss
 
 
 class Energy:
@@ -15,14 +15,14 @@ class Energy:
     def __init__(self) -> None:
         pass
 
-    def fetch(self) -> Iterable[Record]:
+    def _fetch_at_time(self, dt: datetime) -> Iterable[Record]:
+        assert dt.tzinfo # Avoid common mistakes
         url = 'https://www.energy.de/songserver.php'
-        now_berlin = datetime.now(tz=BERLIN_TIME)
         data = {
             'stationnumber': 1,
-            'startzeit': now_berlin.hour,
+            'startzeit': dt.hour,
             # '02.10.2020'
-            'tag': now_berlin.strftime('%d.%m.%Y'),
+            'tag': dt.strftime('%d.%m.%Y'),
         }
         r = requests.post(url, data=data)
         r.raise_for_status()
@@ -39,6 +39,15 @@ class Energy:
             assert track.startswith(' - ')
             title = track[3:]
             yield Record(timestamp, title, artist)
+
+    def fetch(self) -> Iterable[Record]:
+        now_berlin = datetime.now(tz=BERLIN_TIME)
+        # This API is not continuous (i.e. fetching at 10:01 only returns two
+        # mins of results) so we make multiple fetches.
+        for val in self._fetch_at_time(now_berlin):
+            yield val
+        for val in self._fetch_at_time(now_berlin - HOUR):
+            yield val
 
 
 if __name__ == '__main__':
