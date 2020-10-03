@@ -37,7 +37,7 @@ class WdrCosmo:
             # '03.10.2020,07.29 Uhr'
             timestamp_naive = datetime.strptime(timestamp_raw, '%d.%m.%Y,%H.%M Uhr')
             timestamp = timestamp_naive.replace(tzinfo=BERLIN_TIME)
-            yield Record(timestamp, song_name, artist, 'wdr_cosmo')
+            yield Record(timestamp, song_name, artist)
 
 
 if __name__ == '__main__':

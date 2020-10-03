@@ -24,7 +24,7 @@ class FluxFM:
             timestamp = timestamp.replace(tzinfo=BERLIN_TIME)
             artist = row['artist']
             title = row['title']
-            yield Record(timestamp, title, artist, 'fluxfm')
+            yield Record(timestamp, title, artist)
 
 if __name__ == '__main__':
     for x in FluxFM().fetch():

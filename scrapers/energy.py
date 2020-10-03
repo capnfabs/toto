@@ -25,7 +25,6 @@ class Energy:
         r = requests.post(url, data=data)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, 'html.parser')
-        print(soup.table)
         for row in soup.find_all('tr'):
             timestamp = row.select_one('.songtime').text
             tt = time.strptime(timestamp, '%H:%M Uhr')
@@ -37,7 +36,7 @@ class Energy:
             track = artist_track.text
             assert track.startswith(' - ')
             title = track[3:]
-            yield Record(timestamp, title, artist, 'energyberlin')
+            yield Record(timestamp, title, artist)
 
 
 if __name__ == '__main__':

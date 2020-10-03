@@ -32,7 +32,6 @@ class StarFm:
                 timestamp,
                 record['song'],
                 record['artist'],
-                'starfm',
             )
 
 

@@ -63,7 +63,7 @@ class RadioEins:
 
             # That's an em-dash
             [artist, title_in_quotes] = artist_and_title.text.strip().split(" — ")
-            yield Record(timestamp, title_in_quotes.strip('"'), artist, "rbb_radioeins")
+            yield Record(timestamp, title_in_quotes.strip('"'), artist)
 
 
 

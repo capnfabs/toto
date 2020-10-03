@@ -12,10 +12,9 @@ DMHUB_API_LIMIT = 50
 
 
 class DmHub:
-    def __init__(self, host: str, station: str, broadcaster: str) -> None:
+    def __init__(self, host: str, station: str) -> None:
         self.host = host
         self.station = station
-        self.broadcaster = broadcaster
 
     def fetch(self) -> Iterable[Record]:
         end_berlin_time = datetime.datetime.now(tz=BERLIN_TIME)
@@ -41,20 +40,19 @@ class DmHub:
             yield Record(
                 timestamp=timestamp,
                 title=song_title,
-                artist=artist_name,
-                broadcaster=self.broadcaster)
+                artist=artist_name)
 
 
 def main() -> None:
-    dm = DmHub('104.6rtl.com', 'rtl', 'rtl')
+    dm = DmHub('104.6rtl.com', 'rtl')
     for x in dm.fetch():
         print(x)
 
-    dm = DmHub('www.jam.fm', 'jam', 'jamfm')
+    dm = DmHub('www.jam.fm', 'jam')
     for x in dm.fetch():
         print(x)
 
-    dm = DmHub('spreeradio.de', 'spree', 'spreeradio')
+    dm = DmHub('spreeradio.de', 'spree')
     for x in dm.fetch():
         print(x)
 

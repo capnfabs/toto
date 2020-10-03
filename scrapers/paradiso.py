@@ -23,7 +23,6 @@ class RadioParadiso:
                 datetime.fromtimestamp(int(entry['timestamp']), tz=BERLIN_TIME),
                 entry['song'],
                 entry['artist'],
-                'paradiso'
             )
 
 

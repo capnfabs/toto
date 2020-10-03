@@ -1,5 +1,5 @@
 import datetime
-from typing import Dict, Iterable, Union
+from typing import Iterable
 
 import requests
 
@@ -8,10 +8,9 @@ from utils import HOUR, RequestParams
 
 
 class IrisScraper:
-    def __init__(self, host: str, station: int, broadcaster: str) -> None:
+    def __init__(self, host: str, station: int) -> None:
         self.host = host
         self.station = station
-        self.broadcaster = broadcaster
 
     def fetch(self) -> Iterable[Record]:
         url = f'https://{self.host}.loverad.io/search.json'
@@ -39,5 +38,4 @@ class IrisScraper:
             yield Record(
                 timestamp=datetime.datetime.fromisoformat(timestamp),
                 title=song_title,
-                artist=artist_name,
-                broadcaster=self.broadcaster)
+                artist=artist_name)
