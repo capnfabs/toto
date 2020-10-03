@@ -8,6 +8,7 @@ from models import Record
 from scrapers import THIRTY_MINS
 from utils import BERLIN_TIME, MINUTE
 
+FAIL_TEXT = 'Für Ihre Suchanfrage wurde nichts gefunden. Bitte ändern Sie die Suchparameter.'
 
 class WdrCosmo:
     schedule = THIRTY_MINS
@@ -29,6 +30,9 @@ class WdrCosmo:
             'submit': 'suchen',
         }
         r = requests.post(url, data=form_data)
+        r.raise_for_status()
+        if FAIL_TEXT in r.text:
+            return
         soup = BeautifulSoup(r.text, 'html.parser')
         table = soup.select_one('#searchPlaylistResult table')
         [header, *rows] = table.select('tr')

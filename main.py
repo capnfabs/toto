@@ -14,6 +14,7 @@ from scrapers.radioeins import RadioEins
 from scrapers.rbb import Rbb
 from scrapers.star_fm import StarFm
 from scrapers.wdr_cosmo import WdrCosmo
+from utils import continue_on_error
 
 ALL_SCRAPERS: List[Tuple[Scraper, str]] = [
     (StarFm(), 'starfm'),
@@ -46,7 +47,7 @@ def process_record(record: Record, station: str) -> None:
             )
     except TransactionIntegrityError as ex:
         # It's a dupe.
-        status = '⚠️'
+        status = '⚠️ '
 
     print(f'{status} {record}')
 
@@ -64,8 +65,9 @@ def main() -> None:
         if name not in allowed_scrapers:
             continue
         print(f'----- {name} -----')
-        for record in scraper.fetch():
-            process_record(record, name)
+        with continue_on_error():
+            for record in scraper.fetch():
+                process_record(record, name)
 
 
 if __name__ == '__main__':

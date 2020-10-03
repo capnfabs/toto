@@ -1,5 +1,7 @@
 # 'Dateutils' was already taken 😅
 import datetime
+import traceback
+from contextlib import contextmanager
 from typing import Dict, Union
 
 from dateutil import tz
@@ -24,3 +26,12 @@ def datetime_from_berlin_hhmmss(hour: int, min: int, sec: int) -> datetime.datet
     if timestamp > now:
         timestamp -= DAY
     return timestamp
+
+
+@contextmanager
+def continue_on_error():
+    try:
+        yield
+    except Exception:
+        traceback.print_exc()
+
