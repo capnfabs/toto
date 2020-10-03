@@ -5,10 +5,12 @@ from req import requests
 from bs4 import BeautifulSoup
 
 from models import Record
+from scrapers import THIRTY_MINS
 from utils import BERLIN_TIME, MINUTE
 
 
 class WdrCosmo:
+    schedule = THIRTY_MINS
     def __init__(self) -> None:
         pass
 

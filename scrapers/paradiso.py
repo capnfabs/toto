@@ -4,10 +4,12 @@ from typing import Iterable
 from req import requests
 
 from models import Record
+from scrapers import THIRTY_MINS
 from utils import BERLIN_TIME
 
 
 class RadioParadiso:
+    schedule = THIRTY_MINS
     def __init__(self) -> None:
         pass
 

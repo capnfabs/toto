@@ -6,12 +6,15 @@ from req import requests
 from models import Record
 
 # Tested with RTL on 2 Oct 2020
+from scrapers import THIRTY_MINS
 from utils import BERLIN_TIME
 
 DMHUB_API_LIMIT = 50
 
 
 class DmHub:
+    schedule = THIRTY_MINS
+
     def __init__(self, host: str, station: str) -> None:
         self.host = host
         self.station = station

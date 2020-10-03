@@ -6,6 +6,8 @@ from models import Record
 
 Schedule = str
 
+THIRTY_MINS: Schedule = '30 mins'
+
 
 class FutureScraper(Protocol):
     def schedule(self) -> Schedule:
@@ -19,4 +21,7 @@ class FutureScraper(Protocol):
 
 
 class Scraper(Protocol):
+
+    schedule: Schedule
+
     def fetch(self) -> Iterable[Record]: ...

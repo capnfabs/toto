@@ -5,10 +5,12 @@ from req import requests
 from bs4 import BeautifulSoup
 
 from models import Record
+from scrapers import THIRTY_MINS
 from utils import BERLIN_TIME
 
 
 class Rbb:
+    schedule = THIRTY_MINS
     def __init__(self, station: str) -> None:
         self.url = f'http://playlisten.rbb-online.de/{station}/main/'
 

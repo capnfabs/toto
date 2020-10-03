@@ -4,10 +4,12 @@ from typing import Iterable
 from req import requests
 
 from models import Record
+from scrapers import THIRTY_MINS
 from utils import HOUR, RequestParams
 
 
 class IrisScraper:
+    schedule = THIRTY_MINS
     def __init__(self, host: str, station: int) -> None:
         self.host = host
         self.station = station

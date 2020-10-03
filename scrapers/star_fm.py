@@ -5,12 +5,15 @@ from typing import Iterable
 from req import requests
 
 from models import Record
+from scrapers import THIRTY_MINS
 from utils import datetime_from_berlin_hhmmss
 
 
 class StarFm:
     def __init__(self) -> None:
         pass
+
+    schedule = THIRTY_MINS
 
     def fetch(self) -> Iterable[Record]:
         url = "https://berlin.starfm.de/player/ajax/getCurrentSongList.php"
