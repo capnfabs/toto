@@ -10,6 +10,10 @@ BERLIN_TIME = tz.gettz('Europe/Berlin')
 
 
 def datetime_from_berlin_hhmmss(hour: int, min: int, sec: int) -> datetime.datetime:
+    """Takes an hour / min / sec and contextualises it into a timestamp.
+    Assumes that the hour / min / sec correspond to some time in the last 24
+    hrs.
+    """
     # TODO: check that this handles wrapping correctly
     now = datetime.datetime.now(tz=BERLIN_TIME)
     timestamp = now.replace(hour=hour, minute=min, second=sec,
