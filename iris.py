@@ -3,7 +3,8 @@ from typing import Iterable
 
 import requests
 
-from models import HOUR, Record
+from models import Record
+from utils import HOUR
 
 
 class IrisScraper:

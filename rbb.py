@@ -4,7 +4,8 @@ from typing import Iterable
 import requests
 from bs4 import BeautifulSoup
 
-from models import BERLIN_TIME, Record
+from models import Record
+from utils import BERLIN_TIME
 
 
 class Rbb:

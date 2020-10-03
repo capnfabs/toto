@@ -1,11 +1,11 @@
 import json
-from datetime import datetime
 from time import strptime
 from typing import Iterable
 
 import requests
 
-from models import BERLIN_TIME, DAY, Record
+from models import Record
+from utils import datetime_from_berlin_hhmmss
 
 
 class StarFm:
@@ -24,12 +24,10 @@ class StarFm:
             if not (record.get('cDate') and record.get('artist') and record.get('song')):
                 print(f'Skipped bad record: {record}')
                 continue
-            # TODO: check that this handles wrapping correctly
+
             time = strptime(record['cDate'], '%H:%M:%S')
-            now = datetime.now(tz=BERLIN_TIME)
-            timestamp = now.replace(hour=time.tm_hour, minute=time.tm_min, second=time.tm_sec, microsecond=0)
-            if timestamp > now:
-                timestamp -= DAY
+            timestamp = datetime_from_berlin_hhmmss(time.tm_hour, time.tm_min, time.tm_sec)
+
             yield Record(
                 timestamp,
                 record['song'],

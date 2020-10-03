@@ -3,9 +3,11 @@ from typing import Iterable
 
 import requests
 
-from models import BERLIN_TIME, Record
+from models import Record
 
 # Tested with RTL on 2 Oct 2020
+from utils import BERLIN_TIME
+
 DMHUB_API_LIMIT = 50
 
 

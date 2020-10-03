@@ -1,12 +1,6 @@
 import datetime
 from typing import NamedTuple
 
-from dateutil import tz
-
-HOUR = datetime.timedelta(hours=1)
-DAY = datetime.timedelta(days=1)
-BERLIN_TIME = tz.gettz('Europe/Berlin')
-
 class Record(NamedTuple):
     timestamp: datetime.datetime
     title: str
