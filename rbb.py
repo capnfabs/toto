@@ -16,7 +16,7 @@ class Rbb:
         r = requests.get(self.url)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, 'html.parser')
-        [table] = soup.select('.achlist table')
+        [table] = soup.select('table')
         header = table.select('th')
         assert [h.text for h in header] == ['Datum', 'Zeit', 'Interpret', 'Titel']
         rows = table.find_all('tr')
@@ -29,3 +29,4 @@ class Rbb:
 
 if __name__ == '__main__':
     [print(x) for x in Rbb('http://playlisten.rbb-online.de/radioberlin/main/', 'rbb').fetch()]
+    [print(x) for x in Rbb('http://playlisten.rbb-online.de/antenne_brandenburg/main/', 'antenne_brandenburg').fetch()]
