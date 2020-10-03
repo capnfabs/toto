@@ -5,7 +5,7 @@ from req import requests
 
 from models import Record
 from scrapers import THIRTY_MINS
-from utils import HOUR, RequestParams
+from utils import BERLIN_TIME, HOUR, RequestParams
 
 
 class IrisScraper:
@@ -16,7 +16,7 @@ class IrisScraper:
 
     def fetch(self) -> Iterable[Record]:
         url = f'https://{self.host}.loverad.io/search.json'
-        end = datetime.datetime.utcnow()
+        end = datetime.datetime.now(tz=BERLIN_TIME)
         start = end - HOUR
         params: RequestParams = {
             'station': self.station,
