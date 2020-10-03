@@ -1,7 +1,7 @@
-from dmhub import DmHub
-from iris import IrisScraper
-from rbb import Rbb
-from star_fm import StarFm
+from scrapers.dmhub import DmHub
+from scrapers.iris import IrisScraper
+from scrapers.rbb import Rbb
+from scrapers.star_fm import StarFm
 
 
 def main():
