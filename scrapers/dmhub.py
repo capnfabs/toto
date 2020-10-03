@@ -1,7 +1,7 @@
 import datetime
 from typing import Iterable
 
-import requests
+from req import requests
 
 from models import Record
 

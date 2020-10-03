@@ -11,6 +11,7 @@ BERLIN_TIME = tz.gettz('Europe/Berlin')
 
 RequestParams = Dict[str, Union[str, int]]
 
+
 def datetime_from_berlin_hhmmss(hour: int, min: int, sec: int) -> datetime.datetime:
     """Takes an hour / min / sec and contextualises it into a timestamp.
     Assumes that the hour / min / sec correspond to some time in the last 24
@@ -22,4 +23,4 @@ def datetime_from_berlin_hhmmss(hour: int, min: int, sec: int) -> datetime.datet
                             microsecond=0)
     if timestamp > now:
         timestamp -= DAY
-    return  timestamp
+    return timestamp

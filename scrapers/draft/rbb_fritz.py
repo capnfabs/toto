@@ -3,7 +3,7 @@
 # timestamps.
 from typing import Iterable
 
-import requests
+from req import requests
 from bs4 import BeautifulSoup
 
 from models import Record

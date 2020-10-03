@@ -1,6 +1,6 @@
 from typing import Iterable, Protocol
 
-import requests
+import req
 
 from models import Record
 
@@ -11,10 +11,10 @@ class FutureScraper(Protocol):
     def schedule(self) -> Schedule:
         raise NotImplemented
 
-    def fetch(self) -> requests.Response:
+    def fetch(self) -> req.Response:
         raise NotImplemented
 
-    def parse(self, r: requests.Response) -> Iterable[Record]:
+    def parse(self, r: req.Response) -> Iterable[Record]:
         raise NotImplemented
 
 

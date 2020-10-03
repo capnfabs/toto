@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Iterable
 
-import requests
+from req import requests
 
 from models import Record
 from utils import BERLIN_TIME

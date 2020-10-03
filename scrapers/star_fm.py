@@ -2,7 +2,7 @@ import json
 from time import strptime
 from typing import Iterable
 
-import requests
+from req import requests
 
 from models import Record
 from utils import datetime_from_berlin_hhmmss
