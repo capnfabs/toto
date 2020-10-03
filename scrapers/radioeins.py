@@ -1,13 +1,13 @@
 import json
 import time
 from datetime import datetime
-from typing import Iterable
+from typing import Dict, Iterable, Union
 
 import requests
 from bs4 import BeautifulSoup
 
 from models import Record
-from utils import BERLIN_TIME, HOUR, datetime_from_berlin_hhmmss
+from utils import BERLIN_TIME, HOUR, RequestParams, datetime_from_berlin_hhmmss
 
 
 class RadioEins:
@@ -20,7 +20,7 @@ class RadioEins:
         end = datetime.now(tz=BERLIN_TIME)
         start = end - 5*HOUR
 
-        params = {
+        params: RequestParams = {
             # action, remote, version copied verbatim from template request
             'action': 'searching',
             'remote': 1,

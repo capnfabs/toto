@@ -37,4 +37,5 @@ class StarFm:
 
 
 if __name__ == '__main__':
-    [print(x) for x in StarFm().fetch()]
+    for x in StarFm().fetch():
+        print(x)

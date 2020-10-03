@@ -4,7 +4,7 @@ from scrapers.rbb import Rbb
 from scrapers.star_fm import StarFm
 
 
-def main():
+def main() -> None:
     iris = IrisScraper('iris-brf', 5, 'Berliner Rundfunk')
     for record in iris.fetch():
         print(record)
@@ -29,7 +29,8 @@ def main():
     for x in dm.fetch():
         print(x)
 
-    lol = [print(x) for x in StarFm().fetch()]
+    for x in StarFm().fetch():
+        print(x)
 
     rbb = Rbb('http://playlisten.rbb-online.de/radioberlin/main/', 'rbb')
     for x in rbb.fetch():

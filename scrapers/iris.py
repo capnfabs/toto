@@ -1,10 +1,10 @@
 import datetime
-from typing import Iterable
+from typing import Dict, Iterable, Union
 
 import requests
 
 from models import Record
-from utils import HOUR
+from utils import HOUR, RequestParams
 
 
 class IrisScraper:
@@ -17,7 +17,7 @@ class IrisScraper:
         url = f'https://{self.host}.loverad.io/search.json'
         end = datetime.datetime.utcnow()
         start = end - HOUR
-        params = {
+        params: RequestParams = {
             'station': self.station,
             'start': start.isoformat(),
             'end': end.isoformat(),

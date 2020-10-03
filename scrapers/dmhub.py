@@ -49,7 +49,8 @@ class DmHub:
                 artist=artist_name,
                 broadcaster=self.broadcaster)
 
-def main():
+
+def main() -> None:
     dm = DmHub('104.6rtl.com', 'rtl', 'rtl')
     for x in dm.fetch():
         print(x)
@@ -61,6 +62,7 @@ def main():
     dm = DmHub('spreeradio.de', 'spree', 'spreeradio')
     for x in dm.fetch():
         print(x)
+
 
 if __name__ == '__main__':
     main()

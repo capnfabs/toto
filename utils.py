@@ -1,5 +1,6 @@
 # 'Dateutils' was already taken 😅
 import datetime
+from typing import Dict, Union
 
 from dateutil import tz
 
@@ -8,6 +9,7 @@ MINUTE = datetime.timedelta(minutes=1)
 DAY = datetime.timedelta(days=1)
 BERLIN_TIME = tz.gettz('Europe/Berlin')
 
+RequestParams = Dict[str, Union[str, int]]
 
 def datetime_from_berlin_hhmmss(hour: int, min: int, sec: int) -> datetime.datetime:
     """Takes an hour / min / sec and contextualises it into a timestamp.

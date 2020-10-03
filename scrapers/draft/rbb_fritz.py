@@ -1,3 +1,4 @@
+# type: ignore
 # This god-forsaken website has 'playlists from the last 24 hours' and no
 # timestamps.
 from typing import Iterable

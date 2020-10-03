@@ -29,5 +29,7 @@ class Rbb:
 
 
 if __name__ == '__main__':
-    [print(x) for x in Rbb('http://playlisten.rbb-online.de/radioberlin/main/', 'rbb').fetch()]
-    [print(x) for x in Rbb('http://playlisten.rbb-online.de/antenne_brandenburg/main/', 'antenne_brandenburg').fetch()]
+    for x in Rbb('http://playlisten.rbb-online.de/radioberlin/main/', 'rbb').fetch():
+        print(x)
+    for x in Rbb('http://playlisten.rbb-online.de/antenne_brandenburg/main/', 'antenne_brandenburg').fetch():
+        print(x)
