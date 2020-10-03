@@ -12,20 +12,20 @@ from scrapers.star_fm import StarFm
 from scrapers.wdr_cosmo import WdrCosmo
 
 ALL_SCRAPERS: List[Tuple[Scraper, str]] = [
-    (IrisScraper('iris-brf', 5), 'Berliner Rundfunk'),
-    (IrisScraper('iris-rs2', 7), 'RS2'),
-    (IrisScraper('iris-kissfm', 3), 'KissFM'),
-    (DmHub('104.6rtl.com', 'rtl'), 'rtl'),
-    (DmHub('www.jam.fm', 'jam'), 'jamfm'),
-    (DmHub('spreeradio.de', 'spree'), 'spreeradio'),
     (StarFm(), 'starfm'),
     (Rbb('radioberlin'), 'rbb'),
-    (Rbb('antenne_brandenburg'), 'antenne_brandenburg'),
-    (Energy(), 'energy_berlin'),
-    (FluxFM(), 'fluxfm'),
-    (RadioParadiso(), 'paradiso'),
+    (IrisScraper('iris-brf', 5), 'Berliner Rundfunk'),
+    (DmHub('www.jam.fm', 'jam'), 'jamfm'),
+    (IrisScraper('iris-rs2', 7), 'RS2'),
     (RadioEins(), 'rbb_radio_eins'),
     (WdrCosmo(), 'wdr_cosmo'),
+    (RadioParadiso(), 'paradiso'),
+    (IrisScraper('iris-kissfm', 3), 'KissFM'),
+    (Rbb('antenne_brandenburg'), 'antenne_brandenburg'),
+    (FluxFM(), 'fluxfm'),
+    (Energy(), 'energy_berlin'),
+    (DmHub('104.6rtl.com', 'rtl'), 'rtl'),
+    (DmHub('spreeradio.de', 'spree'), 'spreeradio'),
 ]
 
 
