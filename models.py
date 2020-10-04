@@ -1,7 +1,7 @@
 import datetime
 from typing import NamedTuple
 
-from pony.orm import Database, Required, composite_key
+from pony.orm import Database, Optional, Required, composite_key
 
 
 class Record(NamedTuple):
@@ -19,7 +19,7 @@ db = Database()
 class SongPlay(db.Entity):
     timestamp = Required(datetime.datetime)
     station = Required(str)
-    title = Required(str)
+    title = Optional(str)  # means, can be blank, can't be NULL.
     artist = Required(str)
     # Prevent dupes
     composite_key(station, timestamp, title, artist)
