@@ -11,6 +11,7 @@ requests = "*"
 python-dateutil = "*"
 beautifulsoup4 = "*"
 pony = "*"
+requests-toolbelt = "*"
 
 [requires]
 python_version = "3.8"
