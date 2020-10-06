@@ -20,7 +20,7 @@ class SongPlay(db.Entity):
     timestamp = Required(datetime.datetime)
     station = Required(str)
     title = Optional(str)  # means, can be blank, can't be NULL.
-    artist = Required(str)
+    artist = Optional(str) # means, can be blank, can't be NULL.
     # Prevent dupes
     composite_key(station, timestamp, title, artist)
 
