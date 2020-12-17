@@ -12,6 +12,7 @@ python-dateutil = "*"
 beautifulsoup4 = "*"
 pony = "*"
 requests-toolbelt = "*"
+musicbrainzngs = "*"
 
 [requires]
 python_version = "3.8"

@@ -1,7 +1,7 @@
 import datetime
 from typing import NamedTuple
 
-from pony.orm import Database, Optional, Required, composite_key
+from pony.orm import Database, Optional, Required, composite_index, composite_key
 
 
 class Record(NamedTuple):
@@ -25,6 +25,16 @@ class SongPlay(db.Entity):
     composite_key(station, timestamp, title, artist)
 
 
-def connect_db():
-    db.bind(provider='sqlite', filename='database.sqlite', create_db=True)
+class MusicBrainzDetails(db.Entity):
+    searched_title = Required(str)
+    searched_artist = Required(str)
+    musicbrainz_id = Required(str)
+    musicbrainz_json = Required(str)
+
+    # Make searching on this fast
+    composite_index(searched_title, searched_artist)
+
+
+def connect_db(filename: str = 'database.sqlite'):
+    db.bind(provider='sqlite', filename=filename, create_db=True)
     db.generate_mapping(create_tables=True)
