@@ -3,21 +3,36 @@ import sys
 from typing import Any, Dict, Optional, Tuple
 
 import musicbrainzngs
-from pony.orm import db_session, sql_debug
+from pony.orm import db_session
 
 import models
 
 
+# TODO: add this method to a bunch of places.
+def standardize(string: str) -> str:
+    return (string
+            # em dash to ascii dash
+            .replace('‐', '-')
+            # fancy apostrophe to regular apostrophe
+            .replace('’', "'")
+            # Encoding bug somewhere, can't figure out how this is happening
+            .replace('ÃÂ¼', 'ü')
+            .replace('ÃÂ', 'Ä')
+            .replace('ÃÂ¶', 'ö')
+            .lower()
+            .strip()
+            )
+
+
 def normalize_artist_title(sp: models.SongPlay) -> Tuple[str, str]:
-    title = sp.title.lower().strip()
-    artist = sp.artist.lower().strip()
+    title = sp.title
+    artist = sp.artist
     if '(' in title:
-        title: str
         # Intentionally chose first one because sometimes they have multiple
         # bits after, e.g. heroes (david bowie cover) (radio edit)
         cut_title = title[:title.index('(')]
-        return cut_title.strip(), artist
-    return title, artist
+        return standardize(cut_title), standardize(artist)
+    return standardize(title), standardize(artist)
 
 
 PRINT_ALTS = True
@@ -39,15 +54,20 @@ MbRecording = Dict[str, Any]
 
 
 def songplay_matches(title: str, artist: str, recording: MbRecording) -> bool:
-    check_title = recording['title']
+    check_title = standardize(recording['title'])
     # artists are either an object or a string '/'.
     artist_names = [artist['name'] for artist in recording['artist-credit'] if
                     isinstance(artist, dict)]
-    first_artist = artist_names[0]
+    first_artist = standardize(artist_names[0])
     artist_match = artist.lower().startswith(first_artist.lower())
     title_match = title.lower() == check_title.lower()
     print('Artist match:', artist_match)
     print('Title  match:', title_match)
+
+    # TODO: try prefixing with 'The' and splitting / swapping on commas as "emergency strategies"
+    #  Try also restoring the bracketed text, or maybe only removing it under a limited set of
+    #  circumstances
+
     return artist_match and title_match
 
 
