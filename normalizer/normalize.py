@@ -1,6 +1,6 @@
 import json
 import sys
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import musicbrainzngs
 from pony.orm import db_session
@@ -8,7 +8,6 @@ from pony.orm import db_session
 import models
 
 
-# TODO: add this method to a bunch of places.
 def standardize(string: str) -> str:
     return (string
             # em dash to ascii dash
@@ -61,8 +60,8 @@ def songplay_matches(title: str, artist: str, recording: MbRecording) -> bool:
     first_artist = standardize(artist_names[0])
     artist_match = artist.lower().startswith(first_artist.lower())
     title_match = title.lower() == check_title.lower()
-    print('Artist match:', artist_match)
-    print('Title  match:', title_match)
+    #print('Artist match:', artist_match)
+    #print('Title  match:', title_match)
 
     # TODO: try prefixing with 'The' and splitting / swapping on commas as "emergency strategies"
     #  Try also restoring the bracketed text, or maybe only removing it under a limited set of
@@ -85,18 +84,22 @@ def find_candidate(sp: models.SongPlay) -> Optional[models.MusicBrainzDetails]:
     title, artist = normalize_artist_title(sp)
     print(f"Hitting MB for '{artist}' - '{title}'")
     data = musicbrainzngs.search_recordings(recording=title, artist=artist, limit=5)
-    guessed_track: MbRecording = data['recording-list'][0]
+    candidates: List[MbRecording] = data['recording-list']
 
-    if songplay_matches(title, artist, guessed_track):
-        mbid = guessed_track['id']
-        print('Chose         ', format_recording(guessed_track))
-        with db_session:
-            return models.MusicBrainzDetails(
-                searched_title=sp.title,
-                searched_artist=sp.artist,
-                musicbrainz_id=mbid,
-                musicbrainz_json=json.dumps(guessed_track),
-            )
+    # TODO: Next things to try:
+    # - Searching downlist
+    # - Adding some kind of measure of similarity?
+    for attempt, candidate in enumerate(candidates):
+        if songplay_matches(title, artist, candidate):
+            mbid = candidate['id']
+            print(f'Chose #{attempt}      ', format_recording(candidate))
+            with db_session:
+                return models.MusicBrainzDetails(
+                    searched_title=sp.title,
+                    searched_artist=sp.artist,
+                    musicbrainz_id=mbid,
+                    musicbrainz_json=json.dumps(candidate),
+                )
 
     if PRINT_ALTS:
         print("Didn't find a good option, all candidates:")
