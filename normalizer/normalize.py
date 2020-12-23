@@ -1,4 +1,5 @@
 import json
+import re
 import sys
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -9,7 +10,7 @@ import models
 
 
 def standardize(string: str) -> str:
-    return (string
+    string = (string
             # em dash to ascii dash
             .replace('‐', '-')
             # fancy apostrophe to regular apostrophe
@@ -21,6 +22,12 @@ def standardize(string: str) -> str:
             .lower()
             .strip()
             )
+    # regex matches "entire string is symbols"
+    # i.e. unless the string is only symbols
+    if not re.match(r'^[^\d\w\s]+$', string):
+        # replace all the symbols in the string
+        string, _ = re.subn(r'[^\d\w\s]', '', string)
+    return string
 
 
 def normalize_artist_title(sp: models.SongPlay) -> Tuple[str, str]:
