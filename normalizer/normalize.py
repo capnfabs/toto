@@ -15,10 +15,12 @@ def standardize(string: str) -> str:
             .replace('‐', '-')
             # fancy apostrophe to regular apostrophe
             .replace('’', "'")
-            # Encoding bug somewhere, can't figure out how this is happening
+            # Encoding bugs somewhere, can't figure out how this is happening
             .replace('ÃÂ¼', 'ü')
             .replace('ÃÂ', 'Ä')
             .replace('ÃÂ¶', 'ö')
+            .replace('Ã¶', 'ö')
+            .replace('Ã¤', 'ä')
             .lower()
             .strip()
             )
@@ -60,19 +62,18 @@ MbRecording = Dict[str, Any]
 
 
 def songplay_matches(title: str, artist: str, recording: MbRecording) -> bool:
-    check_title = standardize(recording['title'])
+    title_std = standardize(recording['title'])
     # artists are either an object or a string '/'.
     artist_names = [artist['name'] for artist in recording['artist-credit'] if
                     isinstance(artist, dict)]
-    first_artist = standardize(artist_names[0])
-    artist_match = artist.lower().startswith(first_artist.lower())
-    title_match = title.lower() == check_title.lower()
-    #print('Artist match:', artist_match)
-    #print('Title  match:', title_match)
+    first_artist_std = standardize(artist_names[0])
+    artist_match = (
+            artist.startswith(first_artist_std) or
+            # Some providers drop the 'the'.
+            f'the {artist}'.startswith(first_artist_std))
+    title_match = title == title_std
 
-    # TODO: try prefixing with 'The' and splitting / swapping on commas as "emergency strategies"
-    #  Try also restoring the bracketed text, or maybe only removing it under a limited set of
-    #  circumstances
+    # TODO: try restoring the bracketed texts
 
     return artist_match and title_match
 
@@ -94,8 +95,8 @@ def find_candidate(sp: models.SongPlay) -> Optional[models.MusicBrainzDetails]:
     candidates: List[MbRecording] = data['recording-list']
 
     # TODO: Next things to try:
-    # - Searching downlist
     # - Adding some kind of measure of similarity?
+    # - Add a layer between 'searched text' and 'result', and allow 'nomatch'
     for attempt, candidate in enumerate(candidates):
         if songplay_matches(title, artist, candidate):
             mbid = candidate['id']
@@ -125,7 +126,7 @@ def main():
     models.connect_db(dbfile)
 
     with db_session:
-        all_songplays = models.SongPlay.select()[:200]
+        all_songplays = models.SongPlay.select()[200:400]
     for sp in all_songplays:
         process_item(sp)
 
