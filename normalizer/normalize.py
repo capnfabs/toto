@@ -1,3 +1,4 @@
+import enum
 import json
 import re
 import sys
@@ -53,8 +54,7 @@ def process_item(sp: models.SongPlay) -> None:
     query = models.MusicBrainzDetails.select(
         lambda deets: (
             deets.searched_artist == search_artist and
-            deets.searched_title == search_title and
-            deets.musicbrainz_id
+            deets.searched_title == search_title
         )
     )
     with db_session:
@@ -108,8 +108,6 @@ def songplay_matches(sp: models.SongPlay, recording: MbRecording) -> bool:
             (songplay_title_std == f"the {found_title_std}")
     )
 
-    print('Artist match:', artist_match, ', Title match:', title_match)
-
     return artist_match and title_match
 
 
@@ -129,16 +127,9 @@ def find_candidate(
         search_artist: str,
         record_limit: int = 5) -> models.MusicBrainzDetails:
     """Returns either a match, or a "no match" object. """
-    print(f"Hitting MB for '{search_artist}' - '{search_title}'")
-    data = musicbrainzngs.search_recordings(
-        recording=search_title,
-        artist=search_artist,
-        limit=record_limit)
-    candidates: List[MbRecording] = data['recording-list']
+    candidates = load_candidates(search_title, search_artist, record_limit)
 
-    # TODO: Next things to try:
-    # - Adding some kind of measure of similarity?
-    # - Add a layer between 'searched text' and 'result', and allow 'nomatch'
+    # Matching algorithm!
     for attempt, candidate in enumerate(candidates):
         if songplay_matches(sp, candidate):
             mbid = candidate['id']
@@ -154,9 +145,7 @@ def find_candidate(
 
     if PRINT_ALTS:
         print("Didn't find a good option, all candidates:")
-        alts = data['recording-list']
-        for track in alts:
-            print('    - ', format_recording(track))
+        print_candidates(candidates)
     else:
         print("Didn't find a good options, skipping")
 
@@ -164,10 +153,39 @@ def find_candidate(
         return models.MusicBrainzDetails(
             searched_title=search_title,
             searched_artist=search_artist,
-            musicbrainz_id=BLANK,
-            musicbrainz_json=BLANK,
+            musicbrainz_id=models.BLANK,
+            musicbrainz_json=models.BLANK,
             match_decision_source=models.DECISION_AUTO,
         )
+
+class ListType(enum.Enum):
+    ORDERED = 0
+    UNORDERED = 1
+
+
+def print_candidates(candidates: List[MbRecording], list_type: ListType = ListType.UNORDERED) -> None:
+    prefix_fmt: str
+    if list_type == ListType.ORDERED:
+        count = len(candidates)
+        pad_to = len(f'{count - 1}')
+        # This feels terrible but we're basically dynamically constructing
+        # a format string
+        prefix_fmt = '  {ordinal:' + f'{pad_to}' + 'd}.'
+    elif list_type == ListType.UNORDERED:
+        prefix_fmt = '  -'
+    else:
+        assert False, "unexpected ListType"
+    for i, track in enumerate(candidates):
+        print(prefix_fmt.format(ordinal=i), format_recording(track))
+
+
+def load_candidates(search_title: str, search_artist: str, candidate_limit: int) -> List[MbRecording]:
+    data = musicbrainzngs.search_recordings(
+        recording=search_title,
+        artist=search_artist,
+        limit=candidate_limit)
+    candidates: List[MbRecording] = data['recording-list']
+    return candidates
 
 
 def main():

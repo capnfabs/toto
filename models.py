@@ -28,6 +28,7 @@ class SongPlay(db.Entity):
 BLANK = ""
 DECISION_AUTO = "auto"
 DECISION_MANUAL_CHOICE = "manual_choice"
+DECISION_MANUAL_CHOICE_SKIPPED = "manual_choice_skipped"
 DECISION_MANUAL_ENTRY = "manual_entry"
 
 
@@ -37,10 +38,10 @@ class MusicBrainzDetails(db.Entity):
     musicbrainz_id = Optional(str)
     musicbrainz_json = Optional(str)
     # Only use the DECISION_[whatever] entries
-    match_decision_source = Required(str)
+    match_decision_source = Required(str, index=True)
 
     # Make searching on this fast
-    composite_index(searched_title, searched_artist)
+    composite_key(searched_title, searched_artist)
 
 
 def connect_db(filename: str = 'database.sqlite'):
