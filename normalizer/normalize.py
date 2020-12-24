@@ -1,12 +1,19 @@
 import json
 import re
 import sys
+import unicodedata
 from typing import Any, Dict, List, Optional, Tuple
 
 import musicbrainzngs
 from pony.orm import db_session
 
 import models
+
+
+def strip_accents(string: str) -> str:
+    """Borrowed from https://stackoverflow.com/questions/517923/"""
+    nfkd_form = unicodedata.normalize('NFKD', string)
+    return "".join([c for c in nfkd_form if not unicodedata.combining(c)])
 
 
 def standardize(string: str) -> str:
@@ -21,25 +28,20 @@ def standardize(string: str) -> str:
             .replace('ÃÂ¶', 'ö')
             .replace('Ã¶', 'ö')
             .replace('Ã¤', 'ä')
+            # Bunch of artists and titles do this
+            .replace('&', 'and')
             .lower()
             .strip()
             )
-    # regex matches "entire string is symbols"
-    # i.e. unless the string is only symbols
-    if not re.match(r'^[^\d\w\s]+$', string):
-        # replace all the symbols in the string
-        string, _ = re.subn(r'[^\d\w\s]', '', string)
+
+    string = strip_accents(string)
     return string
 
 
-def normalize_artist_title(sp: models.SongPlay) -> Tuple[str, str]:
-    title = sp.title
+def normalize_title_artist_for_search(sp: models.SongPlay) -> Tuple[str, str]:
+    # Remove e.g. (Radio Edit)
+    title = strip_bracketed(sp.title)
     artist = sp.artist
-    if '(' in title:
-        # Intentionally chose first one because sometimes they have multiple
-        # bits after, e.g. heroes (david bowie cover) (radio edit)
-        cut_title = title[:title.index('(')]
-        return standardize(cut_title), standardize(artist)
     return standardize(title), standardize(artist)
 
 
@@ -47,33 +49,66 @@ PRINT_ALTS = True
 
 
 def process_item(sp: models.SongPlay) -> None:
-    query = models.MusicBrainzDetails.select(lambda deets: deets.searched_artist == sp.artist and deets.searched_title == sp.title)
+    search_title, search_artist = normalize_title_artist_for_search(sp)
+    query = models.MusicBrainzDetails.select(
+        lambda deets: (
+            deets.searched_artist == search_artist and
+            deets.searched_title == search_title and
+            deets.musicbrainz_id
+        )
+    )
     with db_session:
         if query.exists():
             return
 
-    print(f"Looking for '{sp.artist}' - '{sp.title}'")
-    # This adds to the database too.
-    find_candidate(sp)
-    pass
+    print(f"Looking for '{sp.artist}' - '{sp.title}' using terms '{search_artist}', '{search_title}'")
+    # This adds to the database.
+    find_candidate(sp, search_title, search_artist)
 
 
 MbRecording = Dict[str, Any]
 
 
-def songplay_matches(title: str, artist: str, recording: MbRecording) -> bool:
-    title_std = standardize(recording['title'])
+def strip_bracketed(string: str) -> str:
+    string, _ = re.subn(r'\(.*\)', '', string)
+    # Also handle the case where there's an unterminated bracket.
+    string, _ = re.subn(r'\(.*?$', '', string)
+    # Trim spaces that might be left over.
+    string = string.strip()
+    return string
+
+def songplay_matches(sp: models.SongPlay, recording: MbRecording) -> bool:
+    found_title_std = standardize(recording['title'])
     # artists are either an object or a string '/'.
     artist_names = [artist['name'] for artist in recording['artist-credit'] if
                     isinstance(artist, dict)]
-    first_artist_std = standardize(artist_names[0])
-    artist_match = (
-            artist.startswith(first_artist_std) or
-            # Some providers drop the 'the'.
-            f'the {artist}'.startswith(first_artist_std))
-    title_match = title == title_std
+    found_first_artist_std = standardize(artist_names[0])
+    songplay_artist_std = standardize(sp.artist)
+    songplay_title_std = standardize(sp.title)
+    if len(found_first_artist_std) < 2 or len(found_title_std) < 2:
+        print('Bailed because found details are too short')
+        return False
 
-    # TODO: try restoring the bracketed texts
+    artist_match = (
+       songplay_artist_std.startswith(found_first_artist_std) or
+       f"the {songplay_artist_std}".startswith(found_first_artist_std)
+    )
+    # Ok, so:
+    # - If the song titles match
+    # - Or the found title matches the title of the thing without brackets
+    #     (e.g. to remove "(Radio Edit)")
+    # then it's a match.
+    # UNDER NO CIRCUMSTANCES should we remove the bracketed bits from the found
+    # title, because then we'll pick up Will Smith - "Miami (Miami Mix)" as the
+    # canonical version. No.
+    title_match = (
+            (songplay_title_std == found_title_std) or
+            (strip_bracketed(songplay_title_std) == found_title_std) or
+            (f"the {songplay_title_std}" == found_title_std) or
+            (songplay_title_std == f"the {found_title_std}")
+    )
+
+    print('Artist match:', artist_match, ', Title match:', title_match)
 
     return artist_match and title_match
 
@@ -88,25 +123,33 @@ def format_recording(recording: MbRecording) -> str:
     return f"'{check_artist}' - '{check_title}' --> {check_url}"
 
 
-def find_candidate(sp: models.SongPlay) -> Optional[models.MusicBrainzDetails]:
-    title, artist = normalize_artist_title(sp)
-    print(f"Hitting MB for '{artist}' - '{title}'")
-    data = musicbrainzngs.search_recordings(recording=title, artist=artist, limit=5)
+def find_candidate(
+        sp: models.SongPlay,
+        search_title: str,
+        search_artist: str,
+        record_limit: int = 5) -> models.MusicBrainzDetails:
+    """Returns either a match, or a "no match" object. """
+    print(f"Hitting MB for '{search_artist}' - '{search_title}'")
+    data = musicbrainzngs.search_recordings(
+        recording=search_title,
+        artist=search_artist,
+        limit=record_limit)
     candidates: List[MbRecording] = data['recording-list']
 
     # TODO: Next things to try:
     # - Adding some kind of measure of similarity?
     # - Add a layer between 'searched text' and 'result', and allow 'nomatch'
     for attempt, candidate in enumerate(candidates):
-        if songplay_matches(title, artist, candidate):
+        if songplay_matches(sp, candidate):
             mbid = candidate['id']
             print(f'Chose #{attempt}      ', format_recording(candidate))
             with db_session:
                 return models.MusicBrainzDetails(
-                    searched_title=sp.title,
-                    searched_artist=sp.artist,
+                    searched_title=search_title,
+                    searched_artist=search_artist,
                     musicbrainz_id=mbid,
                     musicbrainz_json=json.dumps(candidate),
+                    match_decision_source=models.DECISION_AUTO,
                 )
 
     if PRINT_ALTS:
@@ -117,7 +160,14 @@ def find_candidate(sp: models.SongPlay) -> Optional[models.MusicBrainzDetails]:
     else:
         print("Didn't find a good options, skipping")
 
-    return None
+    with db_session:
+        return models.MusicBrainzDetails(
+            searched_title=search_title,
+            searched_artist=search_artist,
+            musicbrainz_id=BLANK,
+            musicbrainz_json=BLANK,
+            match_decision_source=models.DECISION_AUTO,
+        )
 
 
 def main():
@@ -126,7 +176,7 @@ def main():
     models.connect_db(dbfile)
 
     with db_session:
-        all_songplays = models.SongPlay.select()[200:400]
+        all_songplays = models.SongPlay.select()[0:400]
     for sp in all_songplays:
         process_item(sp)
 
