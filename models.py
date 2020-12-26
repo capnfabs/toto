@@ -1,7 +1,7 @@
 import datetime
 from typing import NamedTuple
 
-from pony.orm import Database, Optional, Required, composite_index, composite_key
+from pony.orm import Database, Optional, Required, composite_key
 
 
 class Record(NamedTuple):
