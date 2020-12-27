@@ -1,10 +1,12 @@
 import datetime
 import json
+import sys
 from typing import Any, Dict, Optional
 
-from pony.orm import db_session
+from pony.orm import TransactionIntegrityError, db_session
 
 import models
+from models import iterate_thru_songplays
 from normalizer import clientschema, fetchmodels
 from normalizer.normalize import normalize_title_artist_for_search
 
@@ -37,11 +39,14 @@ def _get_or_create_song(sp: models.SongPlay) -> Optional[clientschema.Song]:
     )
 
     obj: Optional[fetchmodels.MusicBrainzDetails] = query.get()
-    assert obj
+
+    if not obj:
+        # Hasn't been processed yet
+        return None
 
     if not obj.musicbrainz_id:
         # Drop it like it's hawwttttt
-        print(obj.searched_artist, '-', obj.searched_title)
+        # print('Dropping', obj.searched_artist, '-', obj.searched_title)
         return None
 
     song = clientschema.Song.get(lambda s: s.musicbrainz_recording_id == obj.musicbrainz_id)
@@ -55,7 +60,6 @@ def _get_or_create_song(sp: models.SongPlay) -> Optional[clientschema.Song]:
                isinstance(credit, dict)]
 
     artists = [_get_or_create_artist(artist) for artist in artists]
-    print(artists)
 
     return clientschema.Song(
         title=song_title,
@@ -64,18 +68,22 @@ def _get_or_create_song(sp: models.SongPlay) -> Optional[clientschema.Song]:
 
 
 def process_item(sp: models.SongPlay) -> None:
-    print(f'Processing {sp}')
     ts = datetime.datetime.fromisoformat(sp.timestamp)
-    with db_session:
-        song = _get_or_create_song(sp)
-        if not song:
-            return
+    try:
+        with db_session:
+            song = _get_or_create_song(sp)
+            if not song:
+                return
 
-        clientschema.SongPlay(
-            timestamp=ts,
-            station=_get_or_create_station(sp.station),
-            song=song,
-        )
+            clientschema.SongPlay(
+                timestamp=ts,
+                station=_get_or_create_station(sp.station),
+                song=song,
+            )
+    except TransactionIntegrityError:
+        # This is really noisy
+        # print(f'Skipping {sp.to_dict()}, already processed')
+        pass
 
 
 def main():
@@ -83,22 +91,24 @@ def main():
     clientschema.connect_db('/Users/fabian/Downloads/output.sqlite')
     fetchmodels.connect_db()
 
-    with db_session:
-        all_songplays = models.SongPlay.select()[0:400]
-    for sp in all_songplays:
-        process_item(sp)
+    iterate_thru_songplays(process_item)
 
-    # This saves maybe 10%?
-    #drop_nonessential_indexes(clientschema.db)
+    # This saves about 20% before compression / 30% after
+    if '--shrinkwrap' in sys.argv:
+        shrinkwrap(clientschema.db)
 
 
-def drop_nonessential_indexes(db):
+def shrinkwrap(db):
     with db_session:
         indexes = db.select("SELECT name FROM sqlite_master WHERE type == 'index'")
         for index in indexes:
             if not index.startswith('sqlite_autoindex'):
                 # WARNING THIS IS TERRIBLE DO NOT DO IT ON UNTRUSTED INPUT
                 db.execute('DROP INDEX ' + index)
+
+    # Can't be done within transaction so we use Tricks™️
+    with db_session:
+        db._exec_raw_sql('VACUUM', None, None, 0)
 
 
 if __name__ == '__main__':

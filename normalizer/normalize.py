@@ -21,30 +21,59 @@ def strip_accents(string: str) -> str:
 
 
 def standardize(string: str) -> str:
-    string = (string
+    string = (
+        string
             # em dash to ascii dash
             .replace('‐', '-')
             # fancy apostrophe to regular apostrophe
             .replace('’', "'")
             # Encoding bugs somewhere, can't figure out how this is happening
+            # There's definitely a Latin1 <-> unicode glitch somewhere, and I
+            # think a double-conversion bug too
             .replace('ÃÂ¼', 'ü')
+            .replace('Ã¼', 'ü')
+            .replace('ÃÂ', 'Ü')
+            .replace('Ã', 'Ü')
             .replace('ÃÂ', 'Ä')
+            .replace('Ã', 'Ä')
             .replace('ÃÂ¶', 'ö')
             .replace('Ã¶', 'ö')
+            .replace('ÃÂ¤', 'ä')
+            .replace('ÃÂ', 'ß')
+            .replace('Ã', 'ß')
             .replace('Ã¤', 'ä')
+            .replace('Ã©', 'é')
+            .replace('Ã¹', 'ù')
+            .replace('Ã¨', 'è')
+            .replace('Ã¢ÂÂ', "'")
             .replace('&amp;', '&')
             # Bunch of artists and titles do this
             .replace('&', 'and')
             .lower()
             .strip()
-            )
+    )
 
     string = strip_accents(string)
     return string
 
 
+TERRIBLE_SUFFIXES = [
+    '- radio edit',
+    'radio edit',
+    'short edit',
+    # These are in order of priority, so this one has to be last.
+    'edit',
+]
+
+
 def standardize_title(title: str) -> str:
-    return standardize(title)
+    title = standardize(title)
+    # Despite our best efforts to remove brackets etc etc, sometimes the title
+    # has a Terrible Suffix™️ and the trick is just to remove it.
+    for suffix in TERRIBLE_SUFFIXES:
+        if title.endswith(suffix) and title != suffix:
+            title = title[:-len(suffix)].strip()
+    return title
 
 
 def standardize_artist(artist: str) -> str:
@@ -69,17 +98,23 @@ PRINT_ALTS = True
 
 def process_item(sp: models.SongPlay) -> None:
     search_title, search_artist = normalize_title_artist_for_search(sp)
+    if not (search_title and search_artist):
+        # Can't find a song that doesn't exist
+        return
+
     query = MusicBrainzDetails.select(
         lambda deets: (
-            deets.searched_artist == search_artist and
-            deets.searched_title == search_title
+                deets.searched_artist == search_artist and
+                deets.searched_title == search_title
         )
     )
+
     with db_session:
         if query.exists():
             return
 
-    print(f"Looking for '{sp.artist}' - '{sp.title}' using terms '{search_artist}', '{search_title}'")
+    print(
+        f"Looking for '{sp.artist}' - '{sp.title}' using terms '{search_artist}', '{search_title}'")
     # This adds to the database.
     find_candidate(sp, search_title, search_artist)
 
@@ -95,9 +130,11 @@ def strip_bracketed(string: str) -> str:
     string = string.strip()
     return string
 
+
 FUZZ_TITLE_THRESHOLD = 80
 FUZZ_ARTIST_THRESHOLD = 85
 DEBUG_MATCH_RATIOS = True
+
 
 def songplay_matches(sp: models.SongPlay, recording: MbRecording) -> bool:
     found_title_std = standardize_title(recording['title'])
@@ -113,8 +150,8 @@ def songplay_matches(sp: models.SongPlay, recording: MbRecording) -> bool:
 
     # Heuristics
     artist_match = (
-       songplay_artist_std.startswith(found_first_artist_std) or
-       f"the {songplay_artist_std}".startswith(found_first_artist_std)
+            songplay_artist_std.startswith(found_first_artist_std) or
+            f"the {songplay_artist_std}".startswith(found_first_artist_std)
     )
 
     # Fuzzy rescue! Note that fuzzy artist matching requires the _whole_ artist
@@ -158,6 +195,7 @@ def join_artists(artist_credit) -> str:
                 yield artist_or_sep
             else:
                 yield artist_or_sep['name']
+
     return ' '.join(token for token in selector())
 
 
@@ -211,12 +249,14 @@ def find_candidate(
             match_decision_source=DECISION_AUTO,
         )
 
+
 class ListType(enum.Enum):
     ORDERED = 0
     UNORDERED = 1
 
 
-def print_candidates(candidates: List[MbRecording], list_type: ListType = ListType.UNORDERED) -> None:
+def print_candidates(candidates: List[MbRecording],
+                     list_type: ListType = ListType.UNORDERED) -> None:
     prefix_fmt: str
     if list_type == ListType.ORDERED:
         count = len(candidates)
@@ -232,7 +272,8 @@ def print_candidates(candidates: List[MbRecording], list_type: ListType = ListTy
         print(prefix_fmt.format(ordinal=i), format_recording(track))
 
 
-def load_candidates(search_title: str, search_artist: str, candidate_limit: int) -> List[MbRecording]:
+def load_candidates(search_title: str, search_artist: str, candidate_limit: int) -> List[
+    MbRecording]:
     data = musicbrainzngs.search_recordings(
         recording=search_title,
         artist=search_artist,
@@ -246,7 +287,8 @@ def load_recording(url: str) -> MbRecording:
     assert url.startswith(prefix)
     id = url[len(prefix):]
     print('loading ID:', id)
-    return musicbrainzngs.get_recording_by_id(id, includes=['releases', 'artist-credits', 'isrcs'])['recording']
+    return musicbrainzngs.get_recording_by_id(id, includes=['releases', 'artist-credits', 'isrcs'])[
+        'recording']
 
 
 def main():
@@ -255,19 +297,7 @@ def main():
     models.connect_db(dbfile)
     fetchmodels.connect_db()
 
-    with db_session:
-        total_songplays = count(sp for sp in models.SongPlay)
-
-    BATCH_SIZE = 100
-    for i in range(total_songplays//BATCH_SIZE):
-        start = i * BATCH_SIZE
-        end = (i+1)*BATCH_SIZE
-        print(f'Running batch #{i} (items {start}-{end})')
-
-        with db_session:
-            all_songplays = models.SongPlay.select()[start:end]
-        for sp in all_songplays:
-            process_item(sp)
+    models.iterate_thru_songplays(process_item)
 
 
 if __name__ == '__main__':
