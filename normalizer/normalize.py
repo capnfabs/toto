@@ -32,6 +32,7 @@ def standardize(string: str) -> str:
             .replace('ÃÂ¶', 'ö')
             .replace('Ã¶', 'ö')
             .replace('Ã¤', 'ä')
+            .replace('&amp;', '&')
             # Bunch of artists and titles do this
             .replace('&', 'and')
             .lower()
