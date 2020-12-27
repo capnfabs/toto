@@ -6,6 +6,8 @@ import musicbrainzngs
 from pony.orm import db_session
 
 import models
+from normalizer.fetchmodels import DECISION_MANUAL_CHOICE, DECISION_MANUAL_CHOICE_SKIPPED, \
+    MusicBrainzDetails
 from normalizer.normalize import ListType, format_recording, load_candidates, \
     normalize_title_artist_for_search, \
     print_candidates
@@ -14,7 +16,7 @@ from normalizer.normalize import ListType, format_recording, load_candidates, \
 @db_session
 def process_item(sp: models.SongPlay) -> None:
     search_title, search_artist = normalize_title_artist_for_search(sp)
-    query = models.MusicBrainzDetails.select(
+    query = MusicBrainzDetails.select(
         lambda deets: (
             deets.searched_artist == search_artist and
             deets.searched_title == search_title and
@@ -34,13 +36,13 @@ def process_item(sp: models.SongPlay) -> None:
     selection = gimme_a_digit(len(candidates))
     if selection is None:
         # Aborted
-        obj.match_decision_source = models.DECISION_MANUAL_CHOICE_SKIPPED
+        obj.match_decision_source = DECISION_MANUAL_CHOICE_SKIPPED
         print('Skipped')
         return
 
     chosen = candidates[selection]
 
-    obj.match_decision_source = models.DECISION_MANUAL_CHOICE
+    obj.match_decision_source = DECISION_MANUAL_CHOICE
     obj.musicbrainz_id = chosen['id']
     obj.musicbrainz_json = json.dumps(chosen)
     print(f"Alright, search tuple ('{search_artist}', '{search_title}') to use {format_recording(chosen)}")
@@ -68,6 +70,7 @@ def main():
     musicbrainzngs.set_useragent('toto-radiometadata', '0.00001', 'https://capnfabs.net/contact')
     [_, dbfile] = sys.argv
     models.connect_db(dbfile)
+    fetchmodels.connect_db()
 
     with db_session:
         all_songplays = models.SongPlay.select()[0:400]

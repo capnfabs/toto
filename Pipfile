@@ -13,6 +13,8 @@ beautifulsoup4 = "*"
 pony = "*"
 requests-toolbelt = "*"
 musicbrainzngs = "*"
+python-levenshtein = "*"
+fuzzywuzzy = "*"
 
 [requires]
 python_version = "3.8"

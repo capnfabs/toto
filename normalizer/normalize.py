@@ -3,12 +3,15 @@ import json
 import re
 import sys
 import unicodedata
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 import musicbrainzngs
+from fuzzywuzzy import fuzz
 from pony.orm import db_session
 
 import models
+from normalizer import fetchmodels
+from normalizer.fetchmodels import BLANK, DECISION_AUTO, MusicBrainzDetails
 
 
 def strip_accents(string: str) -> str:
@@ -51,7 +54,7 @@ PRINT_ALTS = True
 
 def process_item(sp: models.SongPlay) -> None:
     search_title, search_artist = normalize_title_artist_for_search(sp)
-    query = models.MusicBrainzDetails.select(
+    query = MusicBrainzDetails.select(
         lambda deets: (
             deets.searched_artist == search_artist and
             deets.searched_title == search_title
@@ -77,6 +80,10 @@ def strip_bracketed(string: str) -> str:
     string = string.strip()
     return string
 
+FUZZ_TITLE_THRESHOLD = 80
+FUZZ_ARTIST_THRESHOLD = 70
+DEBUG_MATCH_RATIOS = True
+
 def songplay_matches(sp: models.SongPlay, recording: MbRecording) -> bool:
     found_title_std = standardize(recording['title'])
     # artists are either an object or a string '/'.
@@ -89,10 +96,21 @@ def songplay_matches(sp: models.SongPlay, recording: MbRecording) -> bool:
         print('Bailed because found details are too short')
         return False
 
+    # Heuristics
     artist_match = (
        songplay_artist_std.startswith(found_first_artist_std) or
        f"the {songplay_artist_std}".startswith(found_first_artist_std)
     )
+
+    # Fuzzy rescue! Note that fuzzy artist matching requires the _whole_ artist
+    # so that we skip cases where the MB record has them around the wrong way.
+    artist_match_ratio = fuzz.ratio(songplay_artist_std, found_first_artist_std)
+    fuzzy_artist_match = artist_match_ratio >= FUZZ_ARTIST_THRESHOLD
+    if not artist_match and fuzzy_artist_match:
+        artist_match = True
+        print('Fuzzy-matched artist, score:', artist_match_ratio)
+
+    # Heuristics
     # Ok, so:
     # - If the song titles match
     # - Or the found title matches the title of the thing without brackets
@@ -108,7 +126,24 @@ def songplay_matches(sp: models.SongPlay, recording: MbRecording) -> bool:
             (songplay_title_std == f"the {found_title_std}")
     )
 
+    # Fuzzy rescue!
+    title_match_ratio = fuzz.ratio(songplay_title_std, found_title_std)
+    fuzzy_title_match = title_match_ratio >= FUZZ_TITLE_THRESHOLD
+    if not title_match and fuzzy_title_match:
+        title_match = True
+        print('Fuzzy-matched title, score:', title_match_ratio)
+
     return artist_match and title_match
+
+
+def join_artists(artist_credit) -> str:
+    def selector():
+        for artist_or_sep in artist_credit:
+            if isinstance(artist_or_sep, str):
+                yield artist_or_sep
+            else:
+                yield artist_or_sep['name']
+    return ' '.join(token for token in selector())
 
 
 def format_recording(recording: MbRecording) -> str:
@@ -125,7 +160,7 @@ def find_candidate(
         sp: models.SongPlay,
         search_title: str,
         search_artist: str,
-        record_limit: int = 5) -> models.MusicBrainzDetails:
+        record_limit: int = 5) -> MusicBrainzDetails:
     """Returns either a match, or a "no match" object. """
     candidates = load_candidates(search_title, search_artist, record_limit)
 
@@ -135,12 +170,12 @@ def find_candidate(
             mbid = candidate['id']
             print(f'Chose #{attempt}      ', format_recording(candidate))
             with db_session:
-                return models.MusicBrainzDetails(
+                return MusicBrainzDetails(
                     searched_title=search_title,
                     searched_artist=search_artist,
                     musicbrainz_id=mbid,
                     musicbrainz_json=json.dumps(candidate),
-                    match_decision_source=models.DECISION_AUTO,
+                    match_decision_source=DECISION_AUTO,
                 )
 
     if PRINT_ALTS:
@@ -150,12 +185,12 @@ def find_candidate(
         print("Didn't find a good options, skipping")
 
     with db_session:
-        return models.MusicBrainzDetails(
+        return MusicBrainzDetails(
             searched_title=search_title,
             searched_artist=search_artist,
-            musicbrainz_id=models.BLANK,
-            musicbrainz_json=models.BLANK,
-            match_decision_source=models.DECISION_AUTO,
+            musicbrainz_id=BLANK,
+            musicbrainz_json=BLANK,
+            match_decision_source=DECISION_AUTO,
         )
 
 class ListType(enum.Enum):
@@ -192,6 +227,7 @@ def main():
     musicbrainzngs.set_useragent('toto-radiometadata', '0.00001', 'https://capnfabs.net/contact')
     [_, dbfile] = sys.argv
     models.connect_db(dbfile)
+    fetchmodels.connect_db()
 
     with db_session:
         all_songplays = models.SongPlay.select()[0:400]

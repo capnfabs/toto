@@ -2,11 +2,10 @@ import datetime
 import json
 from typing import Any, Dict, Optional
 
-from pony.orm import db_session, flush, sql_debugging
+from pony.orm import db_session
 
 import models
-from models import MusicBrainzDetails
-from normalizer import clientschema
+from normalizer import clientschema, fetchmodels
 from normalizer.normalize import normalize_title_artist_for_search
 
 
@@ -30,14 +29,14 @@ def _get_or_create_artist(artist_json: ArtistJson) -> clientschema.Artist:
 @db_session
 def _get_or_create_song(sp: models.SongPlay) -> Optional[clientschema.Song]:
     search_title, search_artist = normalize_title_artist_for_search(sp)
-    query = models.MusicBrainzDetails.select(
+    query = fetchmodels.MusicBrainzDetails.select(
         lambda deets: (
                 deets.searched_artist == search_artist and
                 deets.searched_title == search_title
         )
     )
 
-    obj: Optional[MusicBrainzDetails] = query.get()
+    obj: Optional[fetchmodels.MusicBrainzDetails] = query.get()
     assert obj
 
     if not obj.musicbrainz_id:
@@ -82,6 +81,7 @@ def process_item(sp: models.SongPlay) -> None:
 def main():
     models.connect_db('/Users/fabian/Downloads/database.sqlite')
     clientschema.connect_db('/Users/fabian/Downloads/output.sqlite')
+    fetchmodels.connect_db()
 
     with db_session:
         all_songplays = models.SongPlay.select()[0:400]
