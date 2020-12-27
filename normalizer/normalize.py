@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Tuple
 
 import musicbrainzngs
 from fuzzywuzzy import fuzz
-from pony.orm import db_session
+from pony.orm import count, db_session
 
 import models
 from normalizer import fetchmodels
@@ -109,10 +109,6 @@ def songplay_matches(sp: models.SongPlay, recording: MbRecording) -> bool:
     if len(found_first_artist_std) < 2 or len(found_title_std) < 2:
         print('Bailed because found details are too short')
         return False
-
-    print("artist_names:", artist_names)
-    print("found_first_artist_std:", found_first_artist_std)
-    print("found_title:", found_title_std)
 
     # Heuristics
     artist_match = (
@@ -259,9 +255,18 @@ def main():
     fetchmodels.connect_db()
 
     with db_session:
-        all_songplays = models.SongPlay.select()[0:400]
-    for sp in all_songplays:
-        process_item(sp)
+        total_songplays = count(sp for sp in models.SongPlay)
+
+    BATCH_SIZE = 100
+    for i in range(total_songplays//BATCH_SIZE):
+        start = i * BATCH_SIZE
+        end = (i+1)*BATCH_SIZE
+        print(f'Running batch #{i} (items {start}-{end})')
+
+        with db_session:
+            all_songplays = models.SongPlay.select()[start:end]
+        for sp in all_songplays:
+            process_item(sp)
 
 
 if __name__ == '__main__':
