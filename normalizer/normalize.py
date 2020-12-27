@@ -42,11 +42,25 @@ def standardize(string: str) -> str:
     return string
 
 
+def standardize_title(title: str) -> str:
+    return standardize(title)
+
+
+def standardize_artist(artist: str) -> str:
+    artist = standardize(artist)
+    # This is a super common artist and it confuses the hell out of whatever
+    # Musicbrainz' DB is doing (probably splitting on symbols).
+    if artist.lower() == "pink":
+        artist = "p!nk"
+    return artist
+
+
 def normalize_title_artist_for_search(sp: models.SongPlay) -> Tuple[str, str]:
     # Remove e.g. (Radio Edit)
     title = strip_bracketed(sp.title)
     artist = sp.artist
-    return standardize(title), standardize(artist)
+
+    return standardize_title(title), standardize_artist(artist)
 
 
 PRINT_ALTS = True
@@ -81,20 +95,24 @@ def strip_bracketed(string: str) -> str:
     return string
 
 FUZZ_TITLE_THRESHOLD = 80
-FUZZ_ARTIST_THRESHOLD = 70
+FUZZ_ARTIST_THRESHOLD = 85
 DEBUG_MATCH_RATIOS = True
 
 def songplay_matches(sp: models.SongPlay, recording: MbRecording) -> bool:
-    found_title_std = standardize(recording['title'])
+    found_title_std = standardize_title(recording['title'])
     # artists are either an object or a string '/'.
     artist_names = [artist['name'] for artist in recording['artist-credit'] if
                     isinstance(artist, dict)]
-    found_first_artist_std = standardize(artist_names[0])
-    songplay_artist_std = standardize(sp.artist)
-    songplay_title_std = standardize(sp.title)
+    found_first_artist_std = standardize_artist(artist_names[0])
+    songplay_artist_std = standardize_artist(sp.artist)
+    songplay_title_std = standardize_title(sp.title)
     if len(found_first_artist_std) < 2 or len(found_title_std) < 2:
         print('Bailed because found details are too short')
         return False
+
+    print("artist_names:", artist_names)
+    print("found_first_artist_std:", found_first_artist_std)
+    print("found_title:", found_title_std)
 
     # Heuristics
     artist_match = (
@@ -147,8 +165,11 @@ def join_artists(artist_credit) -> str:
 
 
 def format_recording(recording: MbRecording) -> str:
-    artist_names = [artist['name'] for artist in recording['artist-credit'] if
-                    isinstance(artist, dict)]
+    # The search API and the explicit 'lookup by ID' API have different results
+    # here, so we need to treat them differently
+    artist_names = [
+        artist.get('name') or artist.get('artist', {})['name']
+        for artist in recording['artist-credit'] if isinstance(artist, dict)]
     check_artist = ' /plus/ '.join(artist_names)
     check_title = recording['title']
     mbid = recording['id']
@@ -221,6 +242,14 @@ def load_candidates(search_title: str, search_artist: str, candidate_limit: int)
         limit=candidate_limit)
     candidates: List[MbRecording] = data['recording-list']
     return candidates
+
+
+def load_recording(url: str) -> MbRecording:
+    prefix = 'https://musicbrainz.org/recording/'
+    assert url.startswith(prefix)
+    id = url[len(prefix):]
+    print('loading ID:', id)
+    return musicbrainzngs.get_recording_by_id(id, includes=['releases', 'artist-credits', 'isrcs'])['recording']
 
 
 def main():

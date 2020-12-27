@@ -1,15 +1,16 @@
 import json
 import sys
-from typing import Optional
+from typing import Optional, Union
 
 import musicbrainzngs
 from pony.orm import db_session
 
 import models
+from normalizer import fetchmodels
 from normalizer.fetchmodels import DECISION_MANUAL_CHOICE, DECISION_MANUAL_CHOICE_SKIPPED, \
-    MusicBrainzDetails
+    DECISION_MANUAL_ENTRY, MusicBrainzDetails
 from normalizer.normalize import ListType, format_recording, load_candidates, \
-    normalize_title_artist_for_search, \
+    load_recording, normalize_title_artist_for_search, \
     print_candidates
 
 
@@ -30,29 +31,42 @@ def process_item(sp: models.SongPlay) -> None:
     if not obj:
         return
 
+    # We couldn't do this last time, don't try again.
+    if obj.match_decision_source == DECISION_MANUAL_CHOICE_SKIPPED:
+        return
+
     print(f"Reconciling '{sp.artist}' - '{sp.title}' using terms '{search_artist}', '{search_title}'")
     candidates = load_candidates(search_title, search_artist, 11)
     print_candidates(candidates, list_type=ListType.ORDERED)
-    selection = gimme_a_digit(len(candidates))
+    selection = gimme_a_digit_or_url(len(candidates))
     if selection is None:
         # Aborted
         obj.match_decision_source = DECISION_MANUAL_CHOICE_SKIPPED
         print('Skipped')
         return
+    elif isinstance(selection, str):
+        print('Fetching...')
+        chosen = load_recording(selection)
+        decision_src = DECISION_MANUAL_ENTRY
+    elif isinstance(selection, int):
+        chosen = candidates[selection]
+        decision_src = DECISION_MANUAL_CHOICE
+    else:
+        assert False
 
-    chosen = candidates[selection]
-
-    obj.match_decision_source = DECISION_MANUAL_CHOICE
+    obj.match_decision_source = decision_src
     obj.musicbrainz_id = chosen['id']
     obj.musicbrainz_json = json.dumps(chosen)
     print(f"Alright, search tuple ('{search_artist}', '{search_title}') to use {format_recording(chosen)}")
 
 
-def gimme_a_digit(maxval: int) -> Optional[int]:
+def gimme_a_digit_or_url(maxval: int) -> Union[int, str, None]:
     while True:
-        val = input("Pick a number (or 's' to skip, ENTER to accept #0): ")
+        val = input("Pick a number ('s' to skip, ENTER to accept #0, paste a url to override): ")
         if val.lower() == 's':
             return None
+        if val.lower().startswith('https://'):
+            return val
         if val == '':
             # 'Accept #0'
             return 0
