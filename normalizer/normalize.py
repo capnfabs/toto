@@ -3,7 +3,7 @@ import json
 import re
 import sys
 import unicodedata
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import musicbrainzngs
 from fuzzywuzzy import fuzz
@@ -94,6 +94,18 @@ def normalize_title_artist_for_search(sp: models.SongPlay) -> Tuple[str, str]:
 
 
 PRINT_ALTS = True
+
+
+def load_normalized_for(sp: models.SongPlay) -> Optional[fetchmodels.MusicBrainzDetails]:
+    title, artist = normalize_title_artist_for_search(sp)
+    query = MusicBrainzDetails.select(
+        lambda deets: (
+                deets.searched_artist == artist and
+                deets.searched_title == title
+        )
+    )
+    with db_session:
+        return title, artist, query.get()
 
 
 def process_item(sp: models.SongPlay) -> None:

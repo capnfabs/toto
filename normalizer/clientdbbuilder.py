@@ -11,6 +11,9 @@ from normalizer import clientschema, fetchmodels
 from normalizer.normalize import normalize_title_artist_for_search
 
 
+INCLUDE_STATIONS = ['Berliner Rundfunk']
+
+
 def _get_or_create_station(label: str) -> clientschema.Station:
     with db_session:
         return clientschema.Station.get(lambda s: s.name == label) or clientschema.Station(
@@ -68,6 +71,8 @@ def _get_or_create_song(sp: models.SongPlay) -> Optional[clientschema.Song]:
 
 
 def process_item(sp: models.SongPlay) -> None:
+    if sp.station not in INCLUDE_STATIONS:
+        return
     ts = datetime.datetime.fromisoformat(sp.timestamp)
     try:
         with db_session:

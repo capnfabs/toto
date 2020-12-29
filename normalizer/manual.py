@@ -1,6 +1,6 @@
 import json
 import sys
-from typing import Optional, Union
+from typing import Union
 
 import musicbrainzngs
 from pony.orm import db_session
@@ -14,8 +14,13 @@ from normalizer.normalize import ListType, format_recording, load_candidates, \
     print_candidates
 
 
+INCLUDE_STATIONS = ['Berliner Rundfunk']
+
+
 @db_session
 def process_item(sp: models.SongPlay) -> None:
+    if sp.station not in INCLUDE_STATIONS:
+        return
     search_title, search_artist = normalize_title_artist_for_search(sp)
     query = MusicBrainzDetails.select(
         lambda deets: (
@@ -58,6 +63,7 @@ def process_item(sp: models.SongPlay) -> None:
     obj.musicbrainz_id = chosen['id']
     obj.musicbrainz_json = json.dumps(chosen)
     print(f"Alright, search tuple ('{search_artist}', '{search_title}') to use {format_recording(chosen)}")
+    print('\n\n')
 
 
 def gimme_a_digit_or_url(maxval: int) -> Union[int, str, None]:
@@ -86,10 +92,8 @@ def main():
     models.connect_db(dbfile)
     fetchmodels.connect_db()
 
-    with db_session:
-        all_songplays = models.SongPlay.select()[0:400]
-    for sp in all_songplays:
-        process_item(sp)
+    models.iterate_thru_songplays(process_item)
+
 
 if __name__ == '__main__':
     main()

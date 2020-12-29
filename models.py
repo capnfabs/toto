@@ -29,16 +29,16 @@ def connect_db(filename: str = 'database.sqlite'):
     db.generate_mapping(create_tables=True)
 
 
-BATCH_SIZE = 100
+DEFAULT_BATCH_SIZE = 1000
 
 
-def iterate_thru_songplays(process_item: Callable[[SongPlay], None]) -> None:
+def iterate_thru_songplays(process_item: Callable[[SongPlay], None], batch_size=DEFAULT_BATCH_SIZE) -> None:
     with db_session:
         total_songplays = count(sp for sp in SongPlay)
 
-    for i in range(total_songplays // BATCH_SIZE + 1):
-        start = i * BATCH_SIZE
-        end = (i + 1) * BATCH_SIZE
+    for i in range(total_songplays // batch_size + 1):
+        start = i * batch_size
+        end = (i + 1) * batch_size
         print(f'Running batch #{i} (items {start}-{end})')
 
         with db_session:
